@@ -1,0 +1,8 @@
+LearnCV
+.DS_Store
+*.jpg
+*.jpeg
+*.h5
+*.png
+*.mp4
+data/haarcascade
