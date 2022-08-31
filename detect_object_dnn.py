@@ -36,15 +36,19 @@ def detect_object_NMS(object_detection_model, frame, class_names, detect_thresho
             bbox, confs, detect_threshold, nms_threshold)
 
         if is_detection_draw:
+            print("Draw detection bounding box.")
             for i in indices:
                 box = bbox[i]
+                class_name = class_names[classIds[i]-1].upper()
                 conf = round(confs[i], 2)
+
+                print(f"Detect # {i}: class_name:{class_name}, conf:{conf}")
                 x, y, w, h = box[0], box[1], box[2], box[3]
                 cv2.rectangle(frame, (x, y), (x+w, h+y),
                               color=(0, 255, 0), thickness=2)
                 cv2.putText(
                     frame,
-                    f"{class_names[classIds[i]-1].upper()} {conf}",
+                    f"{class_name} {conf}",
                     (box[0]+10, box[1]+30),
                     cv2.FONT_HERSHEY_COMPLEX, 1, (0, 255, 0), 2
                 )

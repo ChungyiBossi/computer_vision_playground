@@ -3,9 +3,7 @@ from detect_object_dnn import (
     load_object_detection_model,
     detect_object_NMS
 )
-from track_single_object import (
-    create_single_object_tracker_model
-)
+from track_single_object import ObjectTracker
 import cv2
 
 
@@ -35,40 +33,41 @@ def detect_and_track_object(
             break
 
         if tracking:
-            for k, tracker in enumerate(trackers):
-                success, point = tracker.update(frame)   # 追蹤成功後，不斷回傳左上和右下的座標
+            for tracker in trackers:
+                point = tracker.update(frame)   # 追蹤成功後，不斷回傳左上和右下的座標
                 # 需處理全部失敗的狀況
-                if success:
-                    p1 = [int(point[0]), int(point[1])]
-                    p2 = [int(point[0] + point[2]), int(point[1] + point[3])]
-                    cv2.rectangle(
-                        img=frame,
-                        pt1=p1,
-                        pt2=p2,
-                        color=(0, 0, 255),
-                        thickness=3
-                    )
-                    # 根據座標，繪製四邊形，框住要追蹤的物件
+                if tracker.is_tracking:
+                    tracker.draw_tracking_object(frame, point)
+
+            # 檢查是否全部都 untracked, 是的話則清空重新偵測
+            check_trackers_tracking = False
+            for tracker in trackers:
+                if tracker.is_tracking:
+                    check_trackers_tracking = True
+                    break
+            if not check_trackers_tracking:
+                tracking = False
+                trackers = list()
+
         else:
             frame, classIds, bbox, confs, nms_indices = detect_object_NMS(
                 object_detection_model=detector,
                 frame=frame,
                 class_names=class_names,
                 detect_threshold=threshold,
-                nms_threshold=nms_threshold
+                nms_threshold=nms_threshold,
+                is_detection_draw=False  # we drae when we tracking
             )
-
             if len(nms_indices):
                 top_n = sorted([
                     (class_names[classIds[i]-1], bbox[i], confs[i])
                     for i in nms_indices
                 ], key=lambda x: x[2])
-
                 print(top_n)
-
-                for idx, target in enumerate(top_n[:maximum_of_trackers]):
-                    trackers.append(create_single_object_tracker_model())
-                    trackers[idx].init(frame, tuple(target[1]))
+                for target in top_n[:maximum_of_trackers]:
+                    tracker = ObjectTracker()
+                    tracker.init(frame, tuple(target[1]), target[0])
+                    trackers.append(tracker)
 
                 tracking = True
 
