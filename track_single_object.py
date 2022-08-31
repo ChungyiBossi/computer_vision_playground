@@ -1,5 +1,5 @@
 import cv2
-
+import time
 
 # def create_multi_object_tracker_model():
 #     return cv2.legacy.MultiTracker_create()
@@ -7,11 +7,17 @@ import cv2
 
 class ObjectTracker():
     def __init__(self, max_untracked_frame_endurence=30):
-        self.tracker = create_single_object_tracker_model()
+        self.tracker = self.create_single_object_tracker_model()
         self.is_tracking = False
         self.num_of_untracked_frame = 0
         self.max_untracked_frame_endurence = max_untracked_frame_endurence
         self.tracked_object_name = None
+
+    @staticmethod
+    def create_single_object_tracker_model():
+        # tracker = cv2.TrackerCSRT_create()  # 創建追蹤器
+        tracker = cv2.TrackerKCF_create()
+        return tracker
 
     def init(self, frame, area, object_class):
         self.tracker.init(frame, area)
@@ -50,15 +56,10 @@ class ObjectTracker():
         )
 
 
-def create_single_object_tracker_model():
-    # tracker = cv2.TrackerCSRT_create()  # 創建追蹤器
-    tracker = cv2.TrackerKCF_create()
-    return tracker
-
-
-def track_object(tracker, video_capture=0):
+def track_object(video_capture=0):
     tracking = False                    # 設定 False 表示尚未開始追蹤
     cap = cv2.VideoCapture(video_capture)
+    time.sleep(1)
     if not cap.isOpened():
         print("Cannot open camera")
         exit()
@@ -80,23 +81,17 @@ def track_object(tracker, video_capture=0):
             # (min_x, min_y, w, h)
             area = cv2.selectROI('Tracker', frame,
                                  showCrosshair=False, fromCenter=False)
-            tracker.init(frame, area)    # 初始化追蹤器
+            tracker = ObjectTracker()
+            tracker.init(frame, area, "Target")    # 初始化追蹤器
             tracking = True              # 設定可以開始追蹤
 
         if tracking:
-            success, point = tracker.update(frame)   # 追蹤成功後，不斷回傳左上和右下的座標
-            if success:
-                p1 = [int(point[0]), int(point[1])]
-                p2 = [int(point[0] + point[2]), int(point[1] + point[3])]
-                cv2.rectangle(
-                    img=frame,
-                    pt1=p1,
-                    pt2=p2,
-                    color=(0, 0, 255),
-                    thickness=3
-                )
-                # 根據座標，繪製四邊形，框住要追蹤的物件
+            point = tracker.update(frame)   # 追蹤成功後，不斷回傳左上和右下的座標
+            if tracker.is_tracking:
+                tracker.draw_tracking_object(frame, point)
             else:
+                tracker = None
+                tracking = False
                 print("Update fail...")
         else:
             print("Not Tracking")
@@ -107,5 +102,4 @@ def track_object(tracker, video_capture=0):
 
 
 if __name__ == '__main__':
-    tracker = create_single_object_tracker_model()
-    track_object(tracker)
+    track_object()
