@@ -6,8 +6,8 @@ import cvzone
 
 # Webcam
 cap = cv2.VideoCapture(0)
-cap.set(3, 1280)
-cap.set(4, 720)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 
 # Hand Detector
 detector = HandDetector(detectionCon=0.8, maxHands=2)
@@ -32,6 +32,8 @@ while True:
         x1, y1 = lmList[5][:2]
         x2, y2 = lmList[17][:2]
 
+        # cv2.circle(img, (x1, y1), 30, [0, 0, 255], cv2.FILLED)
+        # cv2.circle(img, (x2, y2), 30, [0, 255, 0], cv2.FILLED)
         distance = int(math.sqrt((y2 - y1) ** 2 + (x2 - x1) ** 2))
         A, B, C = coff
         distanceCM = A * distance ** 2 + B * distance + C
@@ -42,4 +44,7 @@ while True:
         cvzone.putTextRect(img, f'{int(distanceCM)} cm', (x, y+h+10))
 
     cv2.imshow("Image", img)
-    cv2.waitKey(1)
+    key = cv2.waitKey(1)
+    if key == ord("q"):
+        cv2.destroyAllWindows()
+        break
