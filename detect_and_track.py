@@ -65,7 +65,7 @@ def detect_and_track_object(
                 ], key=lambda x: x[2])
                 print(top_n)
                 for target in top_n[:maximum_of_trackers]:
-                    tracker = ObjectTracker()
+                    tracker = ObjectTracker(is_arrow_from_center_drawed=True)
                     tracker.init(frame, tuple(target[1]), target[0])
                     trackers.append(tracker)
 
