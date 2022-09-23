@@ -1,14 +1,10 @@
-from detect_object_dnn import (
-    load_coco_name,
-    load_object_detection_model,
-    detect_object_NMS
-)
+from detect_object_dnn import CocoDetector, ObjectDetector
 from track_single_object import ObjectTracker
 import cv2
 
 
 def detect_and_track_object(
-    detector, class_names, maximum_of_trackers=3,
+    detector, maximum_of_trackers=3,
     video_capture=0, threshold=0.45, nms_threshold=0.2
 ):
     tracking = False                    # 設定 False 表示尚未開始追蹤
@@ -18,7 +14,6 @@ def detect_and_track_object(
         exit()
 
     trackers = list()
-
     while True:
         # capture
         ret, frame = cap.read()
@@ -50,17 +45,15 @@ def detect_and_track_object(
                 trackers = list()
 
         else:
-            frame, classIds, bbox, confs, nms_indices = detect_object_NMS(
-                object_detection_model=detector,
+            frame, class_names, bbox, confs, nms_indices = detector.detect_object(
                 frame=frame,
-                class_names=class_names,
                 detect_threshold=threshold,
                 nms_threshold=nms_threshold,
-                is_detection_draw=False  # we drae when we tracking
+                is_detection_draw=False  # we draw when we tracking
             )
             if len(nms_indices):
                 top_n = sorted([
-                    (class_names[classIds[i]-1], bbox[i], confs[i])
+                    (class_names[i], bbox[i], confs[i])
                     for i in nms_indices
                 ], key=lambda x: x[2])
                 print(top_n)
@@ -77,10 +70,8 @@ def detect_and_track_object(
 
 
 if __name__ == "__main__":
-    detector = load_object_detection_model()
-    class_names = load_coco_name()
     detect_and_track_object(
-        detector, class_names,
+        detector=CocoDetector(),
         video_capture=0,
         threshold=0.45,
         nms_threshold=0.2
