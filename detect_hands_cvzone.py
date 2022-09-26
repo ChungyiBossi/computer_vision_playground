@@ -1,4 +1,3 @@
-from audioop import bias
 from object_detector_interface import ObjectDetector
 from cvzone.HandTrackingModule import HandDetector
 import cvzone
@@ -16,10 +15,17 @@ class CvzoneHandDetector(ObjectDetector):
         return HandDetector(detectionCon, maxHands)
 
     def load_class_name(self):
+        # Not used
         return ['LeftHand', "RightHand"]
 
-    def detect_object(self, frame, draw=True):
-        hands_data, drawed_img = self.model.findHands(frame, draw=draw)
+    def detect_object(self, frame, is_detection_draw=True, **kwargs):
+        if is_detection_draw:
+            hands_data, drawed_img = self.model.findHands(
+                frame, draw=is_detection_draw)
+        else:
+            hands_data = self.model.findHands(
+                frame, draw=is_detection_draw)
+            drawed_img = frame
 
         fh, fw = frame.shape[:2]
         for hand in hands_data:
@@ -30,10 +36,11 @@ class CvzoneHandDetector(ObjectDetector):
                  hand["center"][1] - fh//2)  # y
 
             hand["depth_in_cm"] = d
-            hand["bias_angle_x"] = self.caculate_delta_angle(delta_pixel[0], d)
+            hand["bias_angle_x"] = \
+                -1 * self.caculate_delta_angle(delta_pixel[0], d)  # 成像左右相反
             hand["bias_angle_y"] = self.caculate_delta_angle(delta_pixel[1], d)
 
-        return img, hands_data
+        return drawed_img, hands_data
 
     def hand_depth(self, handlandmark):
         # focus:w = depth:W , depth = focus*W/w = F(w)
@@ -51,9 +58,9 @@ class CvzoneHandDetector(ObjectDetector):
         depth = A * (w**2) + B * w + C
         return depth
 
-    def caculate_delta_angle(self, delta_pixel, object_depth):
+    def caculate_delta_angle(self, delta_pixel, object_depth, round_deg=2):
         delta_cm = self.pixel_to_cm(delta_pixel)
-        return math.degrees(math.atan2(delta_cm, object_depth))
+        return round(math.degrees(math.atan2(delta_cm, object_depth)), round_deg)
 
     def pixel_to_cm(self, cm):
         return cm * 0.02645833
@@ -87,20 +94,20 @@ if __name__ == "__main__":
     # Loop
     while True:
         success, img = cap.read()
-        # hands = detector.findHands(img, draw=False)
-        drawed_img, hands = hand_detector.detect_object(img, draw=True)
-
-        # cv2.rectangle(img, (x, y), (x + w, y + h), (255, 0, 255), 3)
+        drawed_img, hands = hand_detector.detect_object(
+            img, is_detection_draw=False)
         for hand in hands:
             depth = int(hand["depth_in_cm"])
             x, y, w, h = hand['bbox']
             cvzone.putTextRect(
-                drawed_img, f'{depth} cm', (x, y+h+10))
-
+                drawed_img, f"x:{hand['bias_angle_x']}, y:{hand['bias_angle_y']}",
+                (x+w-10, y)
+            )
+            cvzone.putTextRect(
+                drawed_img, f'{depth} cm', (x, y+h+10)
+            )
         cv2.imshow("Image", img)
         key = cv2.waitKey(1)
         if key == ord("q"):
             cv2.destroyAllWindows()
             break
-
-    print("Hands: ", hands)

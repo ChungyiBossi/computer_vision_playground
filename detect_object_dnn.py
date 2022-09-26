@@ -1,3 +1,4 @@
+from unittest import result
 import numpy as np
 import cv2
 from object_detector_interface import ObjectDetector
@@ -28,13 +29,15 @@ class CocoDetector(ObjectDetector):
             classNames = f.read().split('\n')
         return classNames
 
-    def detect_object(self, frame, detect_threshold, nms_threshold, is_detection_draw=True):
+    def detect_object(self, frame, detect_threshold, nms_threshold, is_detection_draw=True, **kwargs):
         # detecting.....
         classIds, confs, bbox = self.model.detect(
             frame, confThreshold=detect_threshold)
 
         class_names = [self.class_names[index-1].upper()
                        for index in classIds]
+
+        results = list()
         # if object detected
         if len(classIds):
             bbox = list(bbox)
@@ -45,27 +48,35 @@ class CocoDetector(ObjectDetector):
             indices = cv2.dnn.NMSBoxes(
                 bbox, confs, detect_threshold, nms_threshold)
 
-            if is_detection_draw:
-                print("Draw detection bounding box.")
-                for i in indices:
+            for i in indices:
+                object_data = {
+                    'type': class_names[i],
+                    'bbox': bbox[i],
+                    'confidence': confs[i]
+                }
+                results.append(object_data)
+
+                if is_detection_draw:
+                    print("Draw detection bounding box.")
                     box = bbox[i]
                     class_name = class_names[i]
                     conf = round(confs[i], 2)
 
                     print(
-                        f"Detect # {i}: class_name:{class_name}, conf:{conf}")
-                    x, y, w, h = box[0], box[1], box[2], box[3]
-                    cv2.rectangle(frame, (x, y), (x+w, h+y),
-                                  color=(0, 255, 0), thickness=2)
+                        f"Detect: class_name:{object_data['type']}, conf:{object_data['confidence']}")
+                    x, y, w, h = object_data['bbox']
+                    cv2.rectangle(
+                        frame, (x, y), (x+w, h+y),
+                        color=(0, 255, 0), thickness=2
+                    )
                     cv2.putText(
                         frame,
                         f"{class_name} {conf}",
-                        (box[0]+10, box[1]+30),
+                        (x+10, y+30),
                         cv2.FONT_HERSHEY_COMPLEX, 1, (0, 255, 0), 2
                     )
-            return frame, class_names, bbox, confs, indices
-        else:
-            return frame, [], [], [], []
+
+        return frame, results
 
 
 def detect_object_bounding_boxes(threshold=0.45, nms_threshold=0.2, video_capture=0):

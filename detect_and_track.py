@@ -1,4 +1,5 @@
-from detect_object_dnn import CocoDetector, ObjectDetector
+from detect_object_dnn import CocoDetector
+from detect_hands_cvzone import CvzoneHandDetector
 from track_single_object import ObjectTracker
 import cv2
 
@@ -45,16 +46,16 @@ def detect_and_track_object(
                 trackers = list()
 
         else:
-            frame, class_names, bbox, confs, nms_indices = detector.detect_object(
+            frame, results = detector.detect_object(
                 frame=frame,
+                is_detection_draw=False,  # we draw when we tracking
                 detect_threshold=threshold,
                 nms_threshold=nms_threshold,
-                is_detection_draw=False  # we draw when we tracking
             )
-            if len(nms_indices):
+            if len(results):
                 top_n = sorted([
-                    (class_names[i], bbox[i], confs[i])
-                    for i in nms_indices
+                    (r['type'], r['bbox'], r.get('confidence', 1))
+                    for r in results
                 ], key=lambda x: x[2])
                 print(top_n)
                 for target in top_n[:maximum_of_trackers]:
@@ -71,7 +72,8 @@ def detect_and_track_object(
 
 if __name__ == "__main__":
     detect_and_track_object(
-        detector=CocoDetector(),
+        # detector=CocoDetector(),
+        detector=CvzoneHandDetector(),
         video_capture=0,
         threshold=0.45,
         nms_threshold=0.2
