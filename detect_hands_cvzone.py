@@ -96,10 +96,10 @@ if __name__ == "__main__":
     while True:
         success, img = cap.read()
         drawed_img, hands = hand_detector.detect_object(
-            img, is_detection_draw=False)
+            img, is_detection_draw=True)
 
         fh, fw = img.shape[:2]
-        img_center = (fh//2, fw//2)
+        img_center = (fw//2, fh//2)
         for hand in hands:
             depth = int(hand["depth_in_cm"])
             x, y, w, h = hand['bbox']
