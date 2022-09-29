@@ -1,3 +1,4 @@
+from tkinter import Frame
 from object_detector_interface import ObjectDetector
 from cvzone.HandTrackingModule import HandDetector
 import cvzone
@@ -96,6 +97,9 @@ if __name__ == "__main__":
         success, img = cap.read()
         drawed_img, hands = hand_detector.detect_object(
             img, is_detection_draw=False)
+
+        fh, fw = img.shape[:2]
+        img_center = (fh//2, fw//2)
         for hand in hands:
             depth = int(hand["depth_in_cm"])
             x, y, w, h = hand['bbox']
@@ -106,6 +110,9 @@ if __name__ == "__main__":
             cvzone.putTextRect(
                 drawed_img, f'{depth} cm', (x, y+h+10)
             )
+            cv2.circle(img, hand['center'], radius=3, color=(255, 0, 255))
+            cv2.arrowedLine(img, img_center, hand['center'], [
+                            0, 0, 255], thickness=2)
         cv2.imshow("Image", img)
         key = cv2.waitKey(1)
         if key == ord("q"):
