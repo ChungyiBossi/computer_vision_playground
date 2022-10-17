@@ -43,6 +43,29 @@ class CvzoneHandDetector(ObjectDetector):
 
         return drawed_img, hands_data
 
+    def draw_bias(self, frame, hand_data, scale=1):
+        fh, fw = frame.shape[:2]
+        img_center = (fw//2, fh//2)
+        depth = int(hand_data["depth_in_cm"])
+        x, y, w, h = hand_data['bbox']
+        cvzone.putTextRect(
+            frame, f"x:{hand_data['bias_angle_x']}, y:{hand_data['bias_angle_y']}",
+            (x+w-10, y),
+            scale=scale
+        )
+        cvzone.putTextRect(
+            frame, f'{depth} cm', (x, y+h+10),
+            scale=scale
+        )
+        cv2.circle(
+            frame, hand_data['center'],
+            radius=3, color=(255, 0, 255))
+        cv2.arrowedLine(
+            frame, img_center, hand_data['center'],
+            color=[0, 0, 255], thickness=2)
+
+        return frame
+
     def hand_depth(self, handlandmark):
         # focus:w = depth:W , depth = focus*W/w = F(w)
         x1, y1, z1 = handlandmark[5]
@@ -98,21 +121,9 @@ if __name__ == "__main__":
         drawed_img, hands = hand_detector.detect_object(
             img, is_detection_draw=True)
 
-        fh, fw = img.shape[:2]
-        img_center = (fw//2, fh//2)
         for hand in hands:
-            depth = int(hand["depth_in_cm"])
-            x, y, w, h = hand['bbox']
-            cvzone.putTextRect(
-                drawed_img, f"x:{hand['bias_angle_x']}, y:{hand['bias_angle_y']}",
-                (x+w-10, y)
-            )
-            cvzone.putTextRect(
-                drawed_img, f'{depth} cm', (x, y+h+10)
-            )
-            cv2.circle(img, hand['center'], radius=3, color=(255, 0, 255))
-            cv2.arrowedLine(img, img_center, hand['center'], [
-                            0, 0, 255], thickness=2)
+            hand_detector.draw_bias(drawed_img, hand)
+
         cv2.imshow("Image", img)
         key = cv2.waitKey(1)
         if key == ord("q"):

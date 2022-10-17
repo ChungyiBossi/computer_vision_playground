@@ -1,47 +1,10 @@
 import time
 import serial  # 導入serial庫
 from detect_hands_cvzone import CvzoneHandDetector
-import cvzone
 import cv2
 # ls /dev/tty*
 port_name = '/dev/tty.usbserial-D307TEN6'  # Mac
 # port_name = '/dev/ttyUSB0'  # Pi 4B
-
-
-def detect_and_draw(frame, detector, is_detection_draw=True):
-
-    drawed_img, hands = hand_detector.detect_object(
-        img, is_detection_draw=True)
-
-    fh, fw = img.shape[:2]
-    img_center = (fw//2, fh//2)
-    for hand in hands:
-        drawed_img = draw_bias(drawed_img, hand)
-    return drawed_img, hands
-
-
-def draw_bias(frame, hand_data, scale=1):
-    fh, fw = frame.shape[:2]
-    img_center = (fw//2, fh//2)
-    depth = int(hand_data["depth_in_cm"])
-    x, y, w, h = hand_data['bbox']
-    cvzone.putTextRect(
-        frame, f"x:{hand_data['bias_angle_x']}, y:{hand_data['bias_angle_y']}",
-        (x+w-10, y),
-        scale=scale
-    )
-    cvzone.putTextRect(
-        frame, f'{depth} cm', (x, y+h+10),
-        scale=scale
-    )
-    cv2.circle(
-        frame, hand_data['center'],
-        radius=3, color=(255, 0, 255))
-    cv2.arrowedLine(
-        frame, img_center, hand_data['center'],
-        color=[0, 0, 255], thickness=2)
-
-    return frame
 
 
 def init_usb_serial_port(port_name, bord_rate=9600, timeout=0.3):
@@ -65,7 +28,7 @@ if __name__ == "__main__":
         success, img = cap.read()
         # Send to Arduino Board
         if is_response_got:
-            drawed_img, hands = detect_and_draw(img, hand_detector)
+            drawed_img, hands = hand_detector.detect_object(img)
             if hands:
                 dx = hands[0]['bias_angle_x']
                 dy = hands[0]['bias_angle_y']
@@ -79,10 +42,9 @@ if __name__ == "__main__":
             if response:
                 is_response_got = True
                 print("Response:\n", response.decode('UTF8'))  # 進行打印
-            else:
-                # Draw previous result
-                for hand in hands:
-                    img = draw_bias(img, hand, fixed_width//480)
+
+        for hand in hands:
+            img = hand_detector.draw_bias(img, hand, fixed_width//480)
 
         cv2.imshow("Image", img)
         key = cv2.waitKey(1)
