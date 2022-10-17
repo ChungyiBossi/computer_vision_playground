@@ -1,4 +1,5 @@
 import time
+from urllib import response
 import serial  # 導入serial庫
 from detect_hands_cvzone import CvzoneHandDetector
 import cv2
@@ -38,10 +39,14 @@ if __name__ == "__main__":
                 serial_port.write(data_to_be_send)  # 寫s字符
                 is_response_got = False
         else:
-            response = serial_port.readall()  # 用response讀取端口的返回值
-            if response:
+            # s_time = time.time()
+            # response = serial_port.readall()  # 會有0.3sec的delay
+            resp = serial_port.read(
+                serial_port.in_waiting)  # 限定讀取的byte
+            # print(f"Read time: {time.time() - s_time}")
+            if resp:
                 is_response_got = True
-                print("Response:\n", response.decode('UTF8'))  # 進行打印
+                print("Response:\n", resp.decode('UTF8'))  # 進行打印
 
         for hand in hands:
             img = hand_detector.draw_bias(img, hand, fixed_width//480)
