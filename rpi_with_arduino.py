@@ -16,42 +16,32 @@ def detect_and_draw(frame, detector, is_detection_draw=True):
     fh, fw = img.shape[:2]
     img_center = (fw//2, fh//2)
     for hand in hands:
-        depth = int(hand["depth_in_cm"])
-        x, y, w, h = hand['bbox']
-        cvzone.putTextRect(
-            drawed_img, f"x:{hand['bias_angle_x']}, y:{hand['bias_angle_y']}",
-            (x+w-10, y)
-        )
-        cvzone.putTextRect(
-            drawed_img, f'{depth} cm', (x, y+h+10)
-        )
-        cv2.circle(
-            img, hand['center'],
-            radius=3, color=(255, 0, 255))
-        cv2.arrowedLine(
-            img, img_center, hand['center'],
-            color=[0, 0, 255], thickness=2)
+        drawed_img = draw_bias(drawed_img, hand)
     return drawed_img, hands
 
 
-def draw_bias(frame, hand_data):
+def draw_bias(frame, hand_data, scale=1):
     fh, fw = frame.shape[:2]
     img_center = (fw//2, fh//2)
     depth = int(hand_data["depth_in_cm"])
     x, y, w, h = hand_data['bbox']
     cvzone.putTextRect(
-        drawed_img, f"x:{hand_data['bias_angle_x']}, y:{hand_data['bias_angle_y']}",
-        (x+w-10, y)
+        frame, f"x:{hand_data['bias_angle_x']}, y:{hand_data['bias_angle_y']}",
+        (x+w-10, y),
+        scale=scale
     )
     cvzone.putTextRect(
-        drawed_img, f'{depth} cm', (x, y+h+10)
+        frame, f'{depth} cm', (x, y+h+10),
+        scale=scale
     )
     cv2.circle(
-        img, hand_data['center'],
+        frame, hand_data['center'],
         radius=3, color=(255, 0, 255))
     cv2.arrowedLine(
-        img, img_center, hand_data['center'],
+        frame, img_center, hand_data['center'],
         color=[0, 0, 255], thickness=2)
+
+    return frame
 
 
 def init_usb_serial_port(port_name, bord_rate=9600, timeout=0.3):
@@ -61,10 +51,12 @@ def init_usb_serial_port(port_name, bord_rate=9600, timeout=0.3):
 
 if __name__ == "__main__":
     hand_detector = CvzoneHandDetector()
+    fixed_width = 480
+    fixed_height = 360
     # Webcam
     cap = cv2.VideoCapture(0)
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, fixed_width)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, fixed_height)
     # Arduino Board
     is_response_got = True
     serial_port = init_usb_serial_port(port_name)
@@ -87,6 +79,10 @@ if __name__ == "__main__":
             if response:
                 is_response_got = True
                 print("Response:\n", response.decode('UTF8'))  # 進行打印
+            else:
+                # Draw previous result
+                for hand in hands:
+                    img = draw_bias(img, hand, fixed_width//480)
 
         cv2.imshow("Image", img)
         key = cv2.waitKey(1)
